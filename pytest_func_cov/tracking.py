@@ -65,9 +65,9 @@ class FunctionCallMonitor:
             # the function call originates from
             source_frame = inspect.stack()[1]
             source_file = source_frame.filename
+            print("Function called @ :",f)
             source_function = source_frame.function
             self.record_call(f, source_file, source_function)
-
             return f(*args, **kwargs)
 
         _.__signature__ = inspect.signature(f)
@@ -104,7 +104,7 @@ class FunctionCallMonitor:
             )
             for module_name, functions in self.registered_functions
         )
-
+            
     @property
     def missed_functions(self):
         """
@@ -150,9 +150,16 @@ class FunctionCallMonitor:
                 raise MonitoringError(
                     f"Function {get_full_function_name(f)} not monitored."
                 )
-
             return True
-
+        
+        if f in self._modules[f.__module__]:
+            try:
+                self._modules[f.__module__][f].append((source_file, source_function))
+            except KeyError:
+                raise MonitoringError(
+                    f"Function {get_full_function_name(f)} not monitored."
+                )
+            return True
         return False
 
 
@@ -205,6 +212,7 @@ class FunctionIndexer:
             functions = get_functions_defined_in_module(module)
             classes = get_classes_defined_in_module(module)
 
+            #here f_name is the function name and f is the function address
             for f_name, f in functions:
                 if not self.matches_filters(f_name):
                     setattr(module, f_name, self._monitor.register_function(f))

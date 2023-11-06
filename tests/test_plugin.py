@@ -9,41 +9,33 @@ from .module1 import A as AAliased
 """
 
 module1 = """
-class A:
-    def __init__(self):
-        pass
+from mypackage.module2 import f
 
-    def a(self):
-        pass
-
-    def b(self):
-        pass
-
-    def __getitem__(self, name):
-        return name
-    
-    @classmethod
-    def c(cls):
-        pass
-
-    @staticmethod
-    def d():
-        pass
-
-l = lambda x: x + 1
+def c():
+    f()
+    pass
 """
 
+
+module2 = """
+def f():
+    pass
+
+def g():
+    pass
+    
+def h():
+    g()
+    pass    
+"""
 test_module1_0 = """
-from mypackage.module1 import A, l
+from mypackage.module1 import c
+from mypackage.module2 import h
+def test_c():
+    c()
 
-def test_a_constructor():
-    # This should record __init__
-    A()
-
-
-def test_a_getitem():
-    # This should record __getitem__
-    assert A()["key"] == "key"
+def test_h():
+    h()
 """
 
 test_module1_1 = """
@@ -56,16 +48,23 @@ def test_aaliased_d():
 
 def test_alias_is_identical():
     assert AAliased is A
+
 """
 
 
 @pytest.fixture
 def base_package(testdir):
+
     test_dir = testdir.mkdir("tests")
     project_dir = testdir.mkpydir("mypackage")
 
+
+    with project_dir.join("module2.py").open("w") as f:
+        f.write(module2)
+
     with project_dir.join("module1.py").open("w") as f:
         f.write(module1)
+
     with test_dir.join("test_module.py").open("w") as f:
         f.write(test_module1_0)
 
@@ -91,7 +90,7 @@ def package_with_alias(base_package):
 
 def test_base_package(base_package):
     res = base_package.runpytest("--func_cov=mypackage", "tests/")
-    lines = ("mypackage/module1.py +7 +5 +28%", "TOTAL +7 +5 +28%")
+    lines = ("mypackage/module1.py +4 +1 +75%", "TOTAL +4 +1 +75%")
 
     res.stdout.re_match_lines(lines)
 
